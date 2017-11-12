@@ -90,7 +90,7 @@ int stud_slide_window_back_n_frame(char *pBuffer, int bufferSize, UINT8 messageT
 		*need_to_push.pB = *(frame*)pBuffer;
 		need_to_push.size = bufferSize;
 		buffer_queue.push_back(need_to_push);
-		if (window_used < WINDOW_SIZE_BACK_N_FRAME)
+		if (window_used < WINDOW_SIZE_BACK_N_FRAME)	//send those buffers
 		{
 			packet buffer_to_send;
 			buffer_to_send = buffer_queue.at(window_used);
@@ -100,40 +100,36 @@ int stud_slide_window_back_n_frame(char *pBuffer, int bufferSize, UINT8 messageT
 	}
 	if (messageType == MSG_TYPE_RECEIVE)
 	{
-		cout << "timeout1" << endl;
 		unsigned int ack_num = ((frame*)pBuffer)->head.ack;
+		//cout << "ack:" << ack_num << endl;
 		int rece_num = 0;		//to record the id of the buffer that received
-		for (int i = 0; i < WINDOW_SIZE_BACK_N_FRAME; i++)
+		for (int i = 0; i < WINDOW_SIZE_BACK_N_FRAME && i < buffer_queue.size(); i++)
 		{
-			unsigned int seq_num = buffer_queue.front().pB->head.seq;
+			unsigned int seq_num = buffer_queue.at(i).pB->head.seq;
+			//cout << "seq:" << seq_num << endl;
 			if (ack_num == seq_num)
 				rece_num = i;
 		}
-		for (int i = 0; i < rece_num; i++)	//delete those buffers that has been received
+		//cout << "rece_num:" << rece_num << endl;
+		for (int i = 0; i <= rece_num; i++)	//delete those buffers that has been received
 		{
 			window_used--;
 			buffer_queue.pop_front();
 		}
-		for (int i = window_used; i < WINDOW_SIZE_BACK_N_FRAME; i++)
+		for (int i = window_used; i < WINDOW_SIZE_BACK_N_FRAME && i < buffer_queue.size(); i++)	//maybe more than size
 		{
-			if (buffer_queue.size() > window_used)
-			{
-				packet buffer_to_send;
-				buffer_to_send = buffer_queue.at(window_used);
-				window_used++;
-				SendFRAMEPacket((unsigned char*)buffer_to_send.pB, buffer_to_send.size);
-			}
-			else
-				break;
+			packet buffer_to_send;
+			buffer_to_send = buffer_queue.at(window_used);
+			window_used++;
+			SendFRAMEPacket((unsigned char*)buffer_to_send.pB, buffer_to_send.size);
 		}
 	}
 	if (messageType == MSG_TYPE_TIMEOUT)
 	{
-		cout << "timeout2" << endl;
-		for (int i = 0; i < WINDOW_SIZE_BACK_N_FRAME; i++)
+		for (int i = 0; i < WINDOW_SIZE_BACK_N_FRAME && i < buffer_queue.size(); i++)
 		{
 			packet buffer_to_send;
-			buffer_to_send = buffer_queue.at(window_used);
+			buffer_to_send = buffer_queue.at(i);
 			SendFRAMEPacket((unsigned char*)buffer_to_send.pB, buffer_to_send.size);
 		}
 	}
