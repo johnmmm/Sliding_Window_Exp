@@ -26,7 +26,7 @@ typedef struct packet
 	unsigned int size;
 };
 std::deque<packet> buffer_queue;
-bool window_full = true;	//To record whether the window is full
+bool window_full = false;	//To record whether the window is full
 int window_size = 0;
 
 /*
@@ -36,10 +36,9 @@ int stud_slide_window_stop_and_wait(char *pBuffer, int bufferSize, UINT8 message
 {
 	if (messageType == MSG_TYPE_SEND)
 	{
-		printf("timeout?\n");
 		packet need_to_push;
 		need_to_push.pB = new frame();
-		need_to_push.pB = (frame*)pBuffer;
+		*need_to_push.pB = *(frame*)pBuffer;
 		need_to_push.size = bufferSize;
 		buffer_queue.push_back(need_to_push);
 		if (!window_full)		//if the window is not full
@@ -52,7 +51,6 @@ int stud_slide_window_stop_and_wait(char *pBuffer, int bufferSize, UINT8 message
 	}
 	if (messageType == MSG_TYPE_RECEIVE)
 	{
-		printf("timeout1?\n");
 		unsigned int ack_num = ((frame*)pBuffer)->head.ack;
 		if (buffer_queue.size() > 0)
 		{
@@ -73,12 +71,10 @@ int stud_slide_window_stop_and_wait(char *pBuffer, int bufferSize, UINT8 message
 	}
 	if (messageType == MSG_TYPE_TIMEOUT)	//send the buffer again?
 	{
-		printf("timeout2?\n");
 		packet buffer_to_send;
 		buffer_to_send = buffer_queue.front();
 		SendFRAMEPacket((unsigned char*)buffer_to_send.pB, buffer_to_send.size);
 	}
-	cout << messageType << endl;
 	return 0;
 }
 
